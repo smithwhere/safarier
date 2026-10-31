@@ -1,0 +1,28 @@
+name: Sign iOS IPA for registered devices
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sign:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Sign and export Ad Hoc IPA
+        env:
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: iOS/scripts/sign-adhoc.sh
+      - name: Upload signed IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Safarier-iOS-AdHoc
+          path: |
+            build/ios-signed/export/SafarierIOS.ipa
+            build/ios-signed/export/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 7
