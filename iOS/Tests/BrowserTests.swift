@@ -12,7 +12,8 @@ final class BrowserTests: XCTestCase {
         XCTAssertEqual(a.webView.configuration.websiteDataStore.identifier, first.id)
         XCTAssertEqual(b.webView.configuration.websiteDataStore.identifier, second.id)
         XCTAssertNotEqual(first.id, second.id)
-        XCTAssertNil(a.webView.customUserAgent)
+        // WebKit may return nil or an empty string when no override is configured.
+        XCTAssertTrue(a.webView.customUserAgent?.isEmpty ?? true)
         XCTAssertTrue(a.webView.configuration.userContentController.userScripts.isEmpty)
         a.close(); b.close()
     }
