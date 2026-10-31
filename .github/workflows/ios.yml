@@ -1,0 +1,41 @@
+name: iOS browser
+on:
+  workflow_dispatch:
+  push:
+    branches: ['codex/ios-browser', main]
+    paths: ['iOS/**', '.github/workflows/ios.yml']
+  pull_request:
+    paths: ['iOS/**', '.github/workflows/ios.yml']
+permissions:
+  contents: read
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate --spec iOS/project.yml
+      - name: Build unsigned device app
+        run: >-
+          xcodebuild -project iOS/SafarierIOS.xcodeproj -scheme SafarierIOS
+          -sdk iphoneos -configuration Release -derivedDataPath build/ios-device
+          CODE_SIGNING_ALLOWED=NO build
+      - name: Select available iPhone simulator
+        run: |
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for k,vs in d["devices"].items() if "iOS" in k for v in vs if "iPhone" in v["name"]))')
+          echo "IOS_SIMULATOR_ID=$DEVICE_ID" >> "$GITHUB_ENV"
+      - name: Run iOS tests
+        run: >-
+          xcodebuild -project iOS/SafarierIOS.xcodeproj -scheme SafarierIOS
+          -destination "platform=iOS Simulator,id=$IOS_SIMULATOR_ID"
+          -resultBundlePath build/ios-tests.xcresult CODE_SIGNING_ALLOWED=NO test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-build-and-test-results
+          path: |
+            build/ios-device/Build/Products/Release-iphoneos/*.app
+            build/ios-tests.xcresult

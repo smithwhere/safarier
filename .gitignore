@@ -6,3 +6,6 @@ DerivedData/
 .DS_Store
 dist/
 out/
+
+iOS/SafarierIOS.xcodeproj/
+build/
