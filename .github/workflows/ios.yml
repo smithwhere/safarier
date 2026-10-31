@@ -27,11 +27,15 @@ jobs:
         run: |
           DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for k,vs in d["devices"].items() if "iOS" in k for v in vs if "iPhone" in v["name"]))')
           echo "IOS_SIMULATOR_ID=$DEVICE_ID" >> "$GITHUB_ENV"
+      # iOS 18.5 simulator omits libswiftWebKit for apps targeting <= 18.3.
+      # Only the simulator test build uses this workaround; device builds still target iOS 17.
+      # https://bugs.webkit.org/show_bug.cgi?id=293831
       - name: Run iOS tests
         run: >-
           xcodebuild -project iOS/SafarierIOS.xcodeproj -scheme SafarierIOS
           -destination "platform=iOS Simulator,id=$IOS_SIMULATOR_ID"
-          -resultBundlePath build/ios-tests.xcresult CODE_SIGNING_ALLOWED=NO test
+          -resultBundlePath build/ios-tests.xcresult IPHONEOS_DEPLOYMENT_TARGET=18.4
+          CODE_SIGNING_ALLOWED=NO test
       - uses: actions/upload-artifact@v4
         if: always()
         with:
